@@ -11,6 +11,7 @@ class Agent:
         '''
         self.id = id
         self.role = "Agent"
+        self.skip = True
 
 
     def action(self):
@@ -21,14 +22,16 @@ class Agent:
     def propose(self, num):
         print("{}'s proposal.".format(self.id))
         choice = input("Propose(p) or Skip(s):")
-        if choice == "p":
+        if choice == "s" and self.skip:
+            self.skip = False
+            return None, True
+        else:
             print("Enter choice of node team of {} people.".format(num))
             members = []
             for i in range(num):
                 print("Choice ", i + 1, ":")
                 members += [int(input())]
             return members, False
-        return None, True
 
     def return_choice(self, members):
         print(self.id, "choose your action: Accept(1) or Reject(0)")
@@ -44,6 +47,7 @@ class Hacker:
         '''
         self.id = id
         self.role = "Hacker"
+        self.skip = True
 
     def action(self):
         print("{}'s action:".format(self.id))
@@ -55,14 +59,16 @@ class Hacker:
     def propose(self, num):
         print("{}'s proposal.".format(self.id))
         choice = input("Propose(p) or Skip(s):")
-        if choice == "p":
+        if choice == "s" and self.skip:
+            self.skip = False
+            return None, True
+        else:
             print("Enter choice of node team of {} people.".format(num))
             members = []
             for i in range(num):
-                print("Choice ", i+1, ":")
+                print("Choice ", i + 1, ":")
                 members += [int(input())]
             return members, False
-        return None, True
 
     def return_choice(self, members):
         print(self.id, "choose your action: Accept(1) or Reject(0)")
@@ -114,6 +120,8 @@ class Environment:
         ]
         random.shuffle(self.players)
         self.sequence = self.players
+        self.history = np.zeros([5, 10, 14])
+        self.row = 0
 
     def reset(self):
         self.last = 0
@@ -134,39 +142,46 @@ class Environment:
         ]
         random.shuffle(self.players)
         self.sequence = self.players
+        self.history = np.zeros([5, 10, 14])
+        self.row = 0
+        return self.state()
 
     def proposal(self, members, player):
         print("The following members have been proposed by {}.".format(player.id))
         choices = []
         for member in members:
             print(">", self.sequence[member].id)
-        count_acc = 0
         for user in self.sequence:
             choices += [user.return_choice(members)]
         count_acc = choices.count(1)
+        accepts = [0, 0, 0, 0, 0, 0]
         if count_acc <= 3:
             print("The proposal failed!")
             print("The following players accepted it:")
             for i in range(6):
                 if choices[i] == 1:
                     print(">", self.sequence[i].id)
+                    accepts[i] = 1
             sleep(3)
-            return False
+            return False, accepts
         print("The proposal succeeded!")
         print("The following players rejected it:")
+        accepts = [1, 1, 1, 1, 1, 1]
         for i in range(6):
             if choices[i] == 0:
                 print(">", self.sequence[i].id)
-        return True
+                accepts[i] = 0
+        return True, accepts
 
     def start_node(self, node):
+        self.row = 0
         rejected_props = 0
         print("Night {} has begun.".format(node.id))
         sleep(2)
+        hack_num = 0
         while True:
             if rejected_props == 5:
                 print("Hackers win!")
-                self.reset()
                 return True
             os.system("clear")
             print("Players:")
@@ -179,19 +194,27 @@ class Environment:
                 i += 1
             members, skip = self.sequence[self.last].propose(node.req_members)
             if skip:
+                self.add_history([6,6,6,6], self.last, [0,0,0,0,0,0], node, 0)
+                self.row += 1
                 self.last += 1
                 if self.last > 5:
                     self.last = self.last % 5
                 continue
-            accepted = self.proposal(members, self.sequence[self.last])
-            self.last += 1
-            if self.last > 5:
-                self.last = self.last % 5
+            team = [6, 6, 6, 6]
+            for i in range(node.req_members):
+                team[i] = members[i]
+            accepted, accepts = self.proposal(members, self.sequence[self.last])
             if accepted:
                 secured, hack_num = node.mission(members, self.sequence)
+                self.add_history(team, self.last, accepts, node, hack_num)
                 break
             else:
                 rejected_props += 1
+                self.add_history(team, self.last, accepts, node, hack_num)
+            self.row += 1
+            self.last += 1
+            if self.last > 5:
+                self.last = self.last % 5
             os.system("clear")
         if secured:
             print("The node was secured!")
@@ -206,6 +229,7 @@ class Environment:
     def flow(self):
         self.render()
         for node in self.nodes:
+            self.reset_skips()
             condition = self.start_node(node)
             if condition:
                 self.display()
@@ -225,7 +249,10 @@ class Environment:
                 print("Hackers won!")
                 break
         self.display()
-        self.reset()
+
+    def reset_skips(self):
+        for player in self.sequence:
+            player.skip = True
 
     def render(self):
         i = 0
@@ -265,9 +292,34 @@ class Environment:
         print("---------------------------------------")
         sleep(4)
 
+    def add_history(self, team, proposer, accepts, node, hackers_det):
+        if node._secured == False:
+            hacked = 2
+        elif node._secured:
+            hacked = 1
+        else:
+            hacked = 0
+        temp = []
+        temp.extend(team)
+        temp.extend(accepts)
+        temp.extend([proposer])
+        temp.extend([0])
+        temp.extend([hacked])
+        temp.extend([hackers_det])
+        self.history[node.id-1][self.row] = np.array(temp)
+
+    def state(self, player=0):
+        current_state = self.history
+        for node in range(5):
+            for row in range(10):
+                current_state[node][row][11] = player
+        return current_state
+
 
 def main():
     env = Environment()
     env.flow()
+    print(env.state())
+
 
 main()
