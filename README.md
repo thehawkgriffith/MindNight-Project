@@ -26,9 +26,15 @@ I recreated this game in Python so that I can develop Reinforcement Learning
 agents to play the game as effectively as possible.
 
 Work on the A.I. is currently under progress, until future updates.
+
+State design of the model is ready.
+Reward design of the model is ready.
+These are probably prototypes, will test them out once the work is complete and trainable.
+Currently working on the action function and RL Environement interface design.
+
 If you do happen to take interest and fork it to improve it in any way, or 
 have any idea you want to share/report a bug, please mail me.
 
 :)
 
-version = 0.1.5 (alpha)
+version = 0.3.6 (beta)

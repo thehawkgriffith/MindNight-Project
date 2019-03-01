@@ -3,11 +3,16 @@ import numpy as np
 from time import sleep
 import os
 
+
 class Agent:
 
     def __init__(self, id):
         '''
-        id: Player id
+        Parameters:
+        id: Player id/name
+
+        Description:
+        Initializes the agent object.
         '''
         self.id = id
         self.role = "Agent"
@@ -15,11 +20,40 @@ class Agent:
 
 
     def action(self):
+        '''
+        Parameters:
+        None
+
+        Description:
+        Takes node action from user.
+        '''
         print("{}'s action:".format(self.id))
         action = input("Secure(s): ")
         return 'secure'
 
+    def rl_action(self):
+        '''
+        Parameters:
+        None
+
+        Description:
+        Takes node action from RL Agent.
+        No other option for an agent so always secures.
+        '''
+        print("{}'s action:".format(self.id))
+        print(self.id, "chose to secure.")
+        return 'secure'
+
     def propose(self, num):
+        '''
+        Parameters:
+        num: Number of people in a team
+        required for the node.
+
+        Description:
+        Takes in a team proposal by a user.
+        Users can either propose or skip.
+        '''
         print("{}'s proposal.".format(self.id))
         choice = input("Propose(p) or Skip(s):")
         if choice == "s" and self.skip:
@@ -33,30 +67,106 @@ class Agent:
                 members += [int(input())]
             return members, False
 
-    def return_choice(self, members):
+    def rlpropose(self, team):
+        '''
+        Parameters:
+        team: The team decided by the RL Agent.
+
+        Description:
+        Takes in a team proposal by an RL Agent.
+        The Agent can either propose or skip.
+        '''
+        # team = [6, 6, 6, 6] means skip
+        if team == [6, 6, 6, 6]:
+            print("{} chose to skip.")
+            return None, True
+        else:
+            return team, False
+
+    def return_choice(self):
+        '''
+        Parameters:
+        members: Members of the team proposed for the node.
+
+        Description:
+        Takes in a choice by a user for the proposed team.
+        Users can either accept or reject.
+        '''
         print(self.id, "choose your action: Accept(1) or Reject(0)")
         choice = int(input())
         return choice
+
+    def rl_return_choice(self, action):
+        '''
+        Parameters:
+        action: Choice towards the team proposed for the node
+        by the RL Agent.
+
+        Description:
+        Takes in a choice by the RL Agent for the proposed team.
+        Agent can either accept or reject.
+        '''
+        if action == 1:
+            print(self.id, "chose to accept.")
+        else:
+            print(self.id, "chose to reject.")
+        return action
 
 
 class Hacker:
 
     def __init__(self, id):
         '''
-        id: Player id
+        Parameters:
+        id: Player id/name
+
+        Description:
+        Initializes the agent object.
         '''
         self.id = id
         self.role = "Hacker"
         self.skip = True
 
     def action(self):
+        '''
+        Parameters:
+        None
+
+        Description:
+        Takes node action from user.
+        '''
         print("{}'s action:".format(self.id))
         action = input("Secure(s) or Hack(h): ")
         if action == 's':
             return 'secure'
         return 'hack'
 
+    def rl_action(self, action):
+        '''
+        Parameters:
+        action: Node action chosen by RL Agent.
+
+        Description:
+        Takes node action from RL Agent.
+        RL Agent can either secure or hack.
+        '''
+        print("{}'s action:".format(self.id))
+        if action == 0:
+            print(self.id, "chose to secure.")
+            return 'secure'
+        print(self.id, "chose to hack.")
+        return 'hack'
+
     def propose(self, num):
+        '''
+        Parameters:
+        num: Number of people in a team
+        required for the node.
+
+        Description:
+        Takes in a team proposal by a user.
+        Users can either propose or skip.
+        '''
         print("{}'s proposal.".format(self.id))
         choice = input("Propose(p) or Skip(s):")
         if choice == "s" and self.skip:
@@ -70,17 +180,61 @@ class Hacker:
                 members += [int(input())]
             return members, False
 
-    def return_choice(self, members):
+    def rl_propose(self, team):
+        '''
+        Parameters:
+        team: The team decided by the RL Agent.
+
+        Description:
+        Takes in a team proposal by an RL Agent.
+        The Agent can either propose or skip.
+        '''
+        if team == [6, 6, 6, 6]:
+            print("{} chose to skip.")
+            return None, True
+        else:
+            return team, False
+
+    def return_choice(self):
+        '''
+        Parameters:
+        members: Members of the team proposed for the node.
+
+        Description:
+        Takes in a choice by a user for the proposed team.
+        Users can either accept or reject.
+        '''
         print(self.id, "choose your action: Accept(1) or Reject(0)")
         choice = int(input())
         return choice
+
+    def rl_return_choice(self, action):
+        '''
+        Parameters:
+        action: Choice towards the team proposed for the node
+        by the RL Agent.
+
+        Description:
+        Takes in a choice by the RL Agent for the proposed team.
+        Agent can either accept or reject.
+        '''
+        if action == 1:
+            print(self.id, "chose to accept.")
+        else:
+            print(self.id, "chose to reject.")
+        return action
+
 
 class Node:
 
     def __init__(self, id, mem):
         '''
-        id: Node number/id
-        mem: Required number of members to go on this node
+        Parameters:
+        id: Node number/id.
+        mem: Required number of members to go on this node.
+
+        Description:
+        Initializes a node object.
         '''
         self.req_members = mem
         self.id = id
@@ -88,7 +242,14 @@ class Node:
 
     def mission(self, members, seq):
         '''
-        members: List of member objects
+        Parameters:
+        members: Node team that is going on this node.
+        seq: Sequence of players in the game.
+
+        Description:
+        Carries out the node mission taking in the node team
+        and returns whether node was hacked or secured along
+        with the number of hackers detected if hacked.
         '''
         assert len(members) == self.req_members
         choices = [seq[mem].action() for mem in members]
@@ -118,10 +279,12 @@ class Environment:
             Hacker(name_idx[4]),
             Hacker(name_idx[5])
         ]
-        random.shuffle(self.players)
         self.sequence = self.players
+        random.shuffle(self.sequence)
         self.history = np.zeros([5, 10, 14])
         self.row = 0
+        self.agent_reward = 0
+        self.hacker_reward = 0
 
     def reset(self):
         self.last = 0
@@ -144,7 +307,8 @@ class Environment:
         self.sequence = self.players
         self.history = np.zeros([5, 10, 14])
         self.row = 0
-        return self.state()
+        self.agent_reward = 0
+        self.hacker_reward = 0
 
     def proposal(self, members, player):
         print("The following members have been proposed by {}.".format(player.id))
@@ -233,6 +397,8 @@ class Environment:
             condition = self.start_node(node)
             if condition:
                 self.display()
+                self.agent_reward = -100
+                self.hacker_reward = 100
                 return
             self.render()
             sec_nodes = 0
@@ -244,9 +410,13 @@ class Environment:
                     hacked_nodes += 1
             if sec_nodes >= 3:
                 print("Agents won!")
+                self.agent_reward = 100
+                self.hacker_reward = -100
                 break
             if hacked_nodes >= 3:
                 print("Hackers won!")
+                self.agent_reward = -100
+                self.hacker_reward = 100
                 break
         self.display()
 
@@ -314,12 +484,3 @@ class Environment:
             for row in range(10):
                 current_state[node][row][11] = player
         return current_state
-
-
-def main():
-    env = Environment()
-    env.flow()
-    print(env.state())
-
-
-main()
