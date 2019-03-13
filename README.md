@@ -3,12 +3,12 @@ Mindnight Project
 A creation of the game "MindNight" using python. 
 The game is available for free on Steam.
 
------------------------------DISCLAIMER---------------------------------
+---------------------------------------------------------------------------------------------
 
 **I do not own the game, nor am I sponsored to advertise it, 
 however I am a big fan, and just wanted to recreate it out of curiosity.**
 
-------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------
 
 
 The game is about controversial social deduction.
